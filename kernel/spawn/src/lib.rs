@@ -30,7 +30,14 @@ extern crate catch_unwind;
 extern crate fault_crate_swap;
 extern crate pause;
 extern crate thread_local_macro;
+extern crate mpmc;
+extern crate event_types;
+extern crate framebuffer;
 
+
+use framebuffer::{Framebuffer, AlphaPixel};
+use mpmc::Queue;
+use event_types::{Event, MousePositionEvent};
 
 use core::{marker::PhantomData, mem, ops::Deref};
 use alloc::{
@@ -177,6 +184,58 @@ pub fn new_application_task_builder(
         }
     ));
     
+    Ok(tb)
+}
+
+pub fn new_graphical_application_task_builder(
+    crate_object_file: Path, // TODO FIXME: use `mod_mgmt::IntoCrateObjectFile`,
+    new_namespace: Option<Arc<CrateNamespace>>,
+    args: (Framebuffer<AlphaPixel>, Queue<Event>, Queue<Event>)
+) -> Result<TaskBuilder<GrMainFunc, GrMainFuncArg, MainFuncRet>, &'static str> {
+
+    let namespace = new_namespace.or_else(|| task::get_my_current_task().map(|t| t.get_namespace().clone()))
+        .ok_or("spawn::new_application_task_builder(): couldn't get current task to use its CrateNamespace")?;
+
+    let crate_object_file = match crate_object_file.get(namespace.dir())
+        .or_else(|| Path::new(format!("{}.o", &crate_object_file)).get(namespace.dir())) // retry with ".o" extension
+    {
+        Some(FileOrDir::File(f)) => f,
+        _ => return Err("Couldn't find specified file path for new application crate"),
+    };
+
+    // Load the new application crate
+    let app_crate_ref = {
+        let kernel_mmi_ref = get_kernel_mmi_ref().ok_or("couldn't get_kernel_mmi_ref")?;
+        CrateNamespace::load_crate_as_application(&namespace, &crate_object_file, &kernel_mmi_ref, false)?
+    };
+
+    // Find the "main" entry point function in the new app crate
+    let main_func_sec_opt = {
+        let app_crate = app_crate_ref.lock_as_ref();
+        let expected_main_section_name = format!("{}{}{}", app_crate.crate_name_as_prefix(), ENTRY_POINT_SECTION_NAME, SECTION_HASH_DELIMITER);
+        app_crate.find_section(|sec|
+            sec.get_type() == SectionType::Text && sec.name_without_hash() == &expected_main_section_name
+        ).cloned()
+    };
+    let main_func_sec = main_func_sec_opt.ok_or("spawn::new_application_task_builder(): couldn't find \"main\" function, expected function name like \"<crate_name>::main::<hash>\"\
+        --> Is this an app-level library or kernel crate? (Note: you cannot spawn a library crate with no main function)")?;
+    let main_func = main_func_sec.as_func::<GrMainFunc>()?;
+
+    // Create the underlying task builder.
+    // Give it a default name based on the app crate's name, but that can be changed later.
+    let mut tb = TaskBuilder::new(*main_func, args)
+        .name(app_crate_ref.lock_as_ref().crate_name.clone());
+
+    // Once the new application task is created (but before its scheduled in),
+    // ensure it has the relevant app-specific fields set properly.
+    tb.post_build_function = Some(Box::new(
+        move |new_task| {
+            new_task.app_crate = Some(Arc::new(app_crate_ref));
+            new_task.namespace = namespace;
+            Ok(())
+        }
+    ));
+
     Ok(tb)
 }
 
@@ -387,12 +446,17 @@ const ENTRY_POINT_SECTION_NAME: &'static str = "main";
 /// The argument type accepted by the `main` function entry point into each application.
 type MainFuncArg = Vec<String>;
 
+/// The argument type accepted by the `main` function entry point into each graphical application.
+type GrMainFuncArg = (Framebuffer<AlphaPixel>, Queue<Event>, Queue<Event>);
+
 /// The type returned by the `main` function entry point of each application.
 type MainFuncRet = isize;
 
 /// The function signature of the `main` function that every application must have,
 /// as it is the entry point into each application `Task`.
 type MainFunc = fn(MainFuncArg) -> MainFuncRet;
+
+type GrMainFunc = fn(GrMainFuncArg) -> MainFuncRet;
 
 /// A wrapper around a task's function and argument.
 #[derive(Debug)]

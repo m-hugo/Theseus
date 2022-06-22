@@ -4,6 +4,14 @@ name = "spawn"
 description = "Functions and wrappers for spawning new Tasks, both kernel threads and userspace processes."
 version = "0.1.0"
 
+[dependencies]
+mpmc = "0.1.6"
+
+[dependencies.event_types]
+path = "../event_types"
+
+[dependencies.framebuffer]
+path = "../framebuffer"
 
 [dependencies.log]
 version = "0.4.8"

@@ -24,10 +24,14 @@ extern crate terminal_print;
 extern crate print;
 extern crate environment;
 extern crate libterm;
+extern crate framebuffer;
+extern crate mpmc;
 
 #[macro_use] extern crate alloc;
 #[macro_use] extern crate log;
 
+use framebuffer::{Framebuffer, AlphaPixel, Pixel};
+use mpmc::Queue;
 use event_types::{Event};
 use keycodes_ascii::{Keycode, KeyAction, KeyEvent};
 use alloc::string::{String, ToString};
@@ -92,7 +96,7 @@ struct Job {
 }
 
 /// A main function that spawns a new shell and waits for the shell loop to exit before returning an exit value
-pub fn main(_args: Vec<String>) -> isize {
+pub fn main(_args: Option<Vec<String>>/*(Framebuffer<AlphaPixel>, Queue<Event>, Queue<Event>)*/) -> isize {
     {
         let _task_ref = match spawn::new_task_builder(shell_loop, ())
             .name("shell_loop".to_string())

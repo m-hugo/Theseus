@@ -618,12 +618,15 @@ impl WindowManager {
         self.final_fb.get_size()
     }
 }
-
+pub fn main(args: (Framebuffer<AlphaPixel>, Queue<Event>, Queue<Event>)) -> isize {
+    let (final_framebuffer, key_consumer, mouse_consumer) = args;
+    if init(final_framebuffer, key_consumer, mouse_consumer).is_ok(){
+        0
+    } else {-1}
+}
 /// Initialize the window manager. It returns (keyboard_producer, mouse_producer) for the I/O devices.
-pub fn init() -> Result<(Queue<Event>, Queue<Event>), &'static str> {
-    let final_framebuffer: Framebuffer<AlphaPixel> = framebuffer::init()?;
+pub fn init(final_framebuffer: Framebuffer<AlphaPixel>, key_consumer: Queue<Event>, mouse_consumer: Queue<Event>) -> Result<(), &'static str> {
     let (width, height) = final_framebuffer.get_size();
-
     let tmp_framebuffer = Framebuffer::new(width, height, None)?;
     let mut bottom_framebuffer = Framebuffer::new(width, height, None)?;
     let mut top_framebuffer = Framebuffer::new(width, height, None)?;
@@ -653,19 +656,11 @@ pub fn init() -> Result<(Queue<Event>, Queue<Event>), &'static str> {
 
     // wm.refresh_bottom_windows(None, false)?;
 
-    // keyinput queue initialization
-    let key_consumer: Queue<Event> = Queue::with_capacity(100);
-    let key_producer = key_consumer.clone();
-
-    // mouse input queue initialization
-    let mouse_consumer: Queue<Event> = Queue::with_capacity(100);
-    let mouse_producer = mouse_consumer.clone();
-
     spawn::new_task_builder(window_manager_loop, (key_consumer, mouse_consumer))
         .name("window_manager_loop".to_string())
         .spawn()?;
 
-    Ok((key_producer, mouse_producer))
+    Ok(())
 }
 
 /// handles all keyboard and mouse movement in this window manager

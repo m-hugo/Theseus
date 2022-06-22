@@ -42,11 +42,11 @@ extern crate scheduler;
 extern crate first_application;
 extern crate exceptions_full;
 extern crate network_manager;
-extern crate window_manager;
 extern crate multiple_heaps;
 extern crate console;
 #[cfg(simd_personality)] extern crate simd_personality;
-
+extern crate mpmc;
+extern crate event_types;
 
 
 use alloc::sync::Arc;
@@ -56,7 +56,8 @@ use memory::{VirtualAddress, MemoryManagementInfo, MappedPages};
 use kernel_config::memory::KERNEL_STACK_SIZE_IN_PAGES;
 use irq_safety::{MutexIrqSafe, enable_interrupts};
 use stack::Stack;
-
+use mpmc::Queue;
+use event_types::{Event, MousePositionEvent};
 
 
 #[cfg(mirror_log_to_vga)]
@@ -130,8 +131,13 @@ pub fn init(
     multiple_heaps::switch_to_multiple_heaps()?;
     info!("Initialized per-core heaps");
 
-    // initialize window manager.
-    let (key_producer, mouse_producer) = window_manager::init()?;
+    // keyinput queue initialization
+    let key_consumer: Queue<Event> = Queue::with_capacity(100);
+    let key_producer = key_consumer.clone();
+
+    // mouse input queue initialization
+    let mouse_consumer: Queue<Event> = Queue::with_capacity(100);
+    let mouse_producer = mouse_consumer.clone();
 
     // initialize the rest of our drivers
     device_manager::init(key_producer, mouse_producer)?;
@@ -157,7 +163,7 @@ pub fn init(
     // Now that initialization is complete, we can spawn various system tasks/daemons
     // and then the first application(s).
     console::start_connection_detection()?;
-    first_application::start()?;
+    first_application::start(key_consumer, mouse_consumer)?;
 
     info!("captain::init(): initialization done! Spawning an idle task on BSP core {} and enabling interrupts...", bsp_apic_id);
     spawn::create_idle_task(Some(bsp_apic_id))?;
