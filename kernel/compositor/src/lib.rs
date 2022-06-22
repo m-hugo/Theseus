@@ -43,6 +43,7 @@ pub trait Compositor {
     fn composite<'a, B: CompositableRegion + Clone, P: 'a + Pixel>(
         &mut self,
         src_fbs: impl IntoIterator<Item = FramebufferUpdates<'a, P>>,
+        tmp_fb: &mut Framebuffer<P>,
         dest_fb: &mut Framebuffer<P>,
         dest_bounding_boxes: impl IntoIterator<Item = B> + Clone,
     ) -> Result<(), &'static str>;

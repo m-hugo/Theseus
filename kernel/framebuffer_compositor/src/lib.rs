@@ -202,9 +202,11 @@ impl Compositor for FrameCompositor {
     fn composite<'a, B: CompositableRegion + Clone, P: 'a + Pixel>(
         &mut self,
         src_fbs: impl IntoIterator<Item = FramebufferUpdates<'a, P>>,
+        tmp_fb: &mut Framebuffer<P>,
         dest_fb: &mut Framebuffer<P>,
         dest_bounding_boxes: impl IntoIterator<Item = B> + Clone,
     ) -> Result<(), &'static str> {
+        tmp_fb.buffer_mut()[..].copy_from_slice(&dest_fb.buffer()[..]);
         let mut box_iter = dest_bounding_boxes.clone().into_iter();
         if box_iter.next().is_none() {
             for framebuffer_updates in src_fbs.into_iter() {
@@ -226,7 +228,7 @@ impl Compositor for FrameCompositor {
                     if !self.check_and_cache(src_fb, coordinate, &cache_range)? {
                         area.blend_buffers(
                             src_fb,
-                            dest_fb,
+                            tmp_fb,
                             coordinate,
                             cache_range,
                         )?;
@@ -258,7 +260,7 @@ impl Compositor for FrameCompositor {
                         };
                         bounding_box.blend_buffers(
                             src_fb,
-                            dest_fb,
+                            tmp_fb,
                             coordinate,
                             cache_range,
                         )?;
@@ -267,7 +269,7 @@ impl Compositor for FrameCompositor {
                 }
             }
         }
-
+        dest_fb.buffer_mut()[..].copy_from_slice(&tmp_fb.buffer()[..]);
         Ok(())
     }
 }

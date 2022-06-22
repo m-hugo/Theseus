@@ -5,6 +5,10 @@ description = "The main driver of Theseus. Controls the loading and initializati
 version = "0.1.0"
 
 [dependencies]
+mpmc = "0.1.6"
+
+[dependencies.event_types]
+path = "../event_types"
 
 [dependencies.log]
 version = "0.4.8"
@@ -21,9 +25,6 @@ path = "../kernel_config"
 
 [dependencies.logger]
 path = "../logger"
-
-[dependencies.window_manager]
-path = "../window_manager"
 
 [dependencies.first_application]
 path = "../first_application"

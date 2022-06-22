@@ -333,6 +333,7 @@ dependencies = [
  "device_manager",
  "dfqueue",
  "e1000",
+ "event_types",
  "exceptions_full",
  "first_application",
  "interrupts",
@@ -342,6 +343,7 @@ dependencies = [
  "logger",
  "memory",
  "mod_mgmt",
+ "mpmc",
  "multicore_bringup",
  "multiple_heaps",
  "network_manager",
@@ -354,7 +356,6 @@ dependencies = [
  "task",
  "task_fs",
  "tsc",
- "window_manager",
 ]
 
 [[package]]
@@ -978,11 +979,17 @@ dependencies = [
 name = "first_application"
 version = "0.1.0"
 dependencies = [
+ "event_types",
+ "framebuffer",
  "log",
+ "memory",
  "mod_mgmt",
+ "mpmc",
+ "multicore_bringup",
  "path",
  "shell",
  "spawn",
+ "window_manager",
 ]
 
 [[package]]
@@ -1012,7 +1019,6 @@ dependencies = [
  "color",
  "log",
  "memory",
- "multicore_bringup",
  "owning_ref",
  "shapes",
  "zerocopy",
@@ -2728,11 +2734,13 @@ dependencies = [
  "dfqueue",
  "environment",
  "event_types",
+ "framebuffer",
  "fs_node",
  "keycodes_ascii",
  "lazy_static",
  "libterm",
  "log",
+ "mpmc",
  "path",
  "print",
  "root",
@@ -2863,14 +2871,17 @@ dependencies = [
  "catch_unwind",
  "context_switch",
  "debugit",
+ "event_types",
  "fault_crate_swap",
  "fault_log",
+ "framebuffer",
  "fs_node",
  "irq_safety",
  "lazy_static",
  "log",
  "memory",
  "mod_mgmt",
+ "mpmc",
  "path",
  "pause",
  "runqueue",
