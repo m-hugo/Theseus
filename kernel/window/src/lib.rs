@@ -111,16 +111,14 @@ impl Window {
     /// * `width`, `height`: the dimensions of the window in pixels.
     /// * `initial_background`: the default color of the window.
     pub fn new(
-        coordinate: Coord,
-        width: usize,
-        height: usize,
+        mut framebuffer: Framebuffer<AlphaPixel>,
         initial_background: Color,
     ) -> Result<Window, &'static str> {
-        let wm_ref = window_manager::WINDOW_MANAGER.get().ok_or("The window manager is not initialized")?;
+        //let wm_ref = window_manager::WINDOW_MANAGER.get().ok_or("The window manager is not initialized")?;
 
         // Create a new virtual framebuffer to hold this window's contents only,
         // and fill it with the initial background color.
-        let mut framebuffer = Framebuffer::new(width, height, None)?;
+       // let mut framebuffer = Framebuffer::new(width, height, None)?;
         framebuffer.fill(initial_background.into());
         let (width, height) = framebuffer.get_size();
 
@@ -129,15 +127,8 @@ impl Window {
             return Err("window dimensions must be large enough for the title bar and borders to be drawn");
         }
 
-        // Create an event queue to allow the window manager to pass events to this `Window` via its `WindowInner` instance,
-        // and to allow applications to receive events from this `Window` object itself.
-        let event_consumer = Queue::with_capacity(100);
-        let event_producer = event_consumer.clone();
-
         let window_inner = WindowInner::new(coordinate, framebuffer, event_producer);
         let mut window = Window {
-            inner: Arc::new(Mutex::new(window_inner)),
-            event_consumer,
             last_mouse_position_event: MousePositionEvent::default(),
             last_is_active: true, // new window is now set as the active window by default 
         };
@@ -151,17 +142,10 @@ impl Window {
             window.show_button(TopButton::Hide, 1, &mut inner);
         }
 
-        let _window_bounding_box = Rectangle {
-            top_left: coordinate,
-            bottom_right: coordinate + (width as isize, height as isize)
-        };
+        //let mut wm = wm_ref.lock();
+        //wm.set_active(&window.inner, false)?;
 
-        let mut wm = wm_ref.lock();
-        wm.set_active(&window.inner, false)?; 
-
-        // Currently, refresh the whole screen instead of just the new window's bounds
-        // wm.refresh_bottom_windows(Some(window_bounding_box), true)?;
-        wm.refresh_bottom_windows(Option::<Rectangle>::None, true)?;
+        //wm.refresh_bottom_windows(Option::<Rectangle>::None, true)?;
         
         Ok(window)
     }

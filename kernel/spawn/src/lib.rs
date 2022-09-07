@@ -33,11 +33,13 @@ extern crate thread_local_macro;
 extern crate mpmc;
 extern crate event_types;
 extern crate framebuffer;
+extern crate spin;
 
 
 use framebuffer::{Framebuffer, AlphaPixel};
 use mpmc::Queue;
 use event_types::{Event, MousePositionEvent};
+use spin::{Mutex, Once};
 
 use core::{marker::PhantomData, mem, ops::Deref};
 use alloc::{
@@ -190,7 +192,7 @@ pub fn new_application_task_builder(
 pub fn new_graphical_application_task_builder(
     crate_object_file: Path, // TODO FIXME: use `mod_mgmt::IntoCrateObjectFile`,
     new_namespace: Option<Arc<CrateNamespace>>,
-    args: (Framebuffer<AlphaPixel>, Queue<Event>, Queue<Event>)
+    args: (Arc<Mutex<Framebuffer<AlphaPixel>>>, Queue<Event>, Queue<Event>)
 ) -> Result<TaskBuilder<GrMainFunc, GrMainFuncArg, MainFuncRet>, &'static str> {
 
     let namespace = new_namespace.or_else(|| task::get_my_current_task().map(|t| t.get_namespace().clone()))
@@ -447,7 +449,7 @@ const ENTRY_POINT_SECTION_NAME: &'static str = "main";
 type MainFuncArg = Vec<String>;
 
 /// The argument type accepted by the `main` function entry point into each graphical application.
-type GrMainFuncArg = (Framebuffer<AlphaPixel>, Queue<Event>, Queue<Event>);
+type GrMainFuncArg = (Arc<Mutex<Framebuffer<AlphaPixel>>>, Queue<Event>, Queue<Event>);
 
 /// The type returned by the `main` function entry point of each application.
 type MainFuncRet = isize;

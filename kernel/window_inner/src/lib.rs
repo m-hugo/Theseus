@@ -63,15 +63,15 @@ pub struct WindowInner {
     /// The height of title bar in pixels.
     /// By default, there is one title bar at the top edge of the window.
     pub title_bar_height: usize,
-    /// The producer side of this window's event queue. 
-    /// Entities that want to send events to this window (or the application that owns this window) 
+    /// The producer side of this window's event queue.
+    /// Entities that want to send events to this window (or the application that owns this window)
     /// should push events onto this queue.
-    /// 
+    ///
     /// The corresponding consumer for this event queue is found in the `Window` struct
     /// that created and owns this `WindowInner` instance.
     event_producer: Queue<Event>, // event output used by window manager
     /// The virtual framebuffer that is used exclusively for rendering only this window.
-    framebuffer: Framebuffer<AlphaPixel>,
+    framebuffer: Arc<Mutex<Framebuffer<AlphaPixel>>>,
     /// Whether a window is moving or stationary.
     /// 
     /// TODO: FIXME (kevinaboos): this should be private, and window moving logic should be moved into this crate.

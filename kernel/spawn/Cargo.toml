@@ -6,6 +6,7 @@ version = "0.1.0"
 
 [dependencies]
 mpmc = "0.1.6"
+spin = "0.9.0"
 
 [dependencies.event_types]
 path = "../event_types"

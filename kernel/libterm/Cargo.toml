@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Andrew Pham <apham727@gmail.com>", "Zhiyao Ma <zm16@pku.edu.cn>"]
 
 [dependencies]
+mpmc = "0.1.6"
 
 [dependencies.log]
 version = "0.4.8"

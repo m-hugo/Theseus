@@ -21,12 +21,6 @@ path = "../color"
 [dependencies.framebuffer_drawer]
 path = "../framebuffer_drawer"
 
-[dependencies.window_inner]
-path = "../window_inner"
-
-[dependencies.window_manager]
-path = "../window_manager"
-
 [dependencies.framebuffer]
 path = "../framebuffer"
 

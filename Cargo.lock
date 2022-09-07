@@ -989,6 +989,7 @@ dependencies = [
  "path",
  "shell",
  "spawn",
+ "spin 0.9.0",
  "window_manager",
 ]
 
@@ -1481,6 +1482,7 @@ dependencies = [
  "framebuffer_drawer",
  "framebuffer_printer",
  "log",
+ "mpmc",
  "print",
  "root",
  "shapes",
@@ -2886,6 +2888,7 @@ dependencies = [
  "pause",
  "runqueue",
  "scheduler",
+ "spin 0.9.0",
  "stack",
  "task",
  "thread_local_macro",
@@ -3725,8 +3728,6 @@ dependencies = [
  "shapes",
  "spawn",
  "spin 0.9.0",
- "window_inner",
- "window_manager",
 ]
 
 [[package]]

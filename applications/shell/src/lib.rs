@@ -96,9 +96,9 @@ struct Job {
 }
 
 /// A main function that spawns a new shell and waits for the shell loop to exit before returning an exit value
-pub fn main(_args: Option<Vec<String>>/*(Framebuffer<AlphaPixel>, Queue<Event>, Queue<Event>)*/) -> isize {
+pub fn main(args: (Arc<Mutex<Framebuffer<AlphaPixel>>>, Queue<Event>, Queue<Event>)) -> isize {
     {
-        let _task_ref = match spawn::new_task_builder(shell_loop, ())
+        let _task_ref = match spawn::new_task_builder(shell_loop, args)
             .name("shell_loop".to_string())
             .spawn() {
             Ok(task_ref) => { task_ref }
@@ -176,7 +176,7 @@ struct Shell {
 impl Shell {
     /// Create a new shell. Currently the shell will bind to the default terminal instance provided
     /// by the `app_io` crate.
-    fn new() -> Result<Shell, &'static str> {
+    fn new(args: (Framebuffer<AlphaPixel>, Queue<Event>, Queue<Event>)) -> Result<Shell, &'static str> {
         // Initialize a dfqueue for the terminal object to handle printing from applications.
         // Note that this is only to support legacy output. Newly developed applications should
         // turn to use `stdio` provided by the `stdio` crate together with the support of `app_io`.
@@ -197,7 +197,7 @@ impl Shell {
             working_dir: Arc::clone(root::get_root()), 
         };
 
-        let terminal = Arc::new(Mutex::new(Terminal::new()?));
+        let terminal = Arc::new(Mutex::new(Terminal::new(args)?));
 
         Ok(Shell {
             jobs: BTreeMap::new(),
@@ -1501,7 +1501,7 @@ impl Shell {
 
 
 /// Start a new shell. Shell::start() is an infinite loop, so normally we do not return from this function.
-fn shell_loop(mut _dummy: ()) -> Result<(), &'static str> {
-    Shell::new()?.start()?;
+fn shell_loop(dummy: (Framebuffer<AlphaPixel>, Queue<Event>, Queue<Event>)) -> Result<(), &'static str> {
+    Shell::new(dummy)?.start()?;
     Ok(())
 }

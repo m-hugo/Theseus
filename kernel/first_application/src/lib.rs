@@ -27,7 +27,11 @@ extern crate event_types;
 extern crate multicore_bringup;
 extern crate framebuffer;
 extern crate memory;
+extern crate spin;
 
+
+use spin::{Mutex, Once};
+use alloc::sync::{Arc, Weak};
 use memory::{EntryFlags, MappedPages, PhysicalAddress};
 use framebuffer::{Framebuffer, AlphaPixel, Pixel};
 use mpmc::Queue;
@@ -77,9 +81,9 @@ pub fn init_framebuffer<P: Pixel>() -> Result<Framebuffer<P>, &'static str> {
 /// Kernel initialization routines should be complete before invoking this. 
 pub fn start(key_consumer: Queue<Event>, mouse_consumer: Queue<Event>) -> Result<(), &'static str> {
     let final_framebuffer: Framebuffer<AlphaPixel> = init_framebuffer()?;
-    //window_manager::init(key_consumer, mouse_consumer)?;
-    let new_app_ns = mod_mgmt::create_application_namespace(None)?;
+    window_protocol::init(final_framebuffer), key_consumer, mouse_consumer);
 
+    let new_app_ns = mod_mgmt::create_application_namespace(None)?;
     // NOTE: see crate-level docs and note in this crate's `Cargo.toml`.
     let (app_file, _ns) = CrateNamespace::get_crate_object_file_starting_with(
         &new_app_ns, 
@@ -88,8 +92,10 @@ pub fn start(key_consumer: Queue<Event>, mouse_consumer: Queue<Event>) -> Result
 
     let path = Path::new(app_file.lock().get_absolute_path());
     info!("Starting first application: crate at {:?}", path);
+
+    //window_manager::init(final_framebuffer, key_consumer, mouse_consumer)?;
     // Spawn the default shell
-    spawn::new_graphical_application_task_builder(path, Some(new_app_ns), (final_framebuffer, key_consumer, mouse_consumer))?
+    spawn::new_application_task_builder(path, Some(new_app_ns))?
         .name("window_manager".to_string())
         .spawn()?;
 

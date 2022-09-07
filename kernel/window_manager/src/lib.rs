@@ -98,7 +98,7 @@ pub struct WindowManager {
     /// A framebuffer used to atomically update final_fb and prevent screen flickering
     tmp_fb: Framebuffer<AlphaPixel>,
     /// The final framebuffer which is mapped to the screen (the actual display device).
-    pub final_fb: Framebuffer<AlphaPixel>,
+    pub final_fb: Arc<Mutex<Framebuffer<AlphaPixel>>>,
 }
 
 impl WindowManager {
@@ -618,14 +618,14 @@ impl WindowManager {
         self.final_fb.get_size()
     }
 }
-pub fn main(args: (Framebuffer<AlphaPixel>, Queue<Event>, Queue<Event>)) -> isize {
-    let (final_framebuffer, key_consumer, mouse_consumer) = args;
-    if init(final_framebuffer, key_consumer, mouse_consumer).is_ok(){
-        0
+pub fn main() -> isize {
+    if init().is_ok(){
+        0//loop { scheduler::schedule(); }
     } else {-1}
 }
 /// Initialize the window manager. It returns (keyboard_producer, mouse_producer) for the I/O devices.
-pub fn init(final_framebuffer: Framebuffer<AlphaPixel>, key_consumer: Queue<Event>, mouse_consumer: Queue<Event>) -> Result<(), &'static str> {
+pub fn init() -> Result<(), &'static str> {
+    let (final_framebuffer, key_consumer, mouse_consumer) = window_protocol::register_wm();
     let (width, height) = final_framebuffer.get_size();
     let tmp_framebuffer = Framebuffer::new(width, height, None)?;
     let mut bottom_framebuffer = Framebuffer::new(width, height, None)?;
@@ -742,7 +742,7 @@ fn window_manager_loop(
 /// handle keyboard event, push it to the active window if one exists
 fn keyboard_handle_application(key_input: KeyEvent) -> Result<(), &'static str> {
     let win_mgr = WINDOW_MANAGER.get().ok_or("The window manager was not yet initialized")?;
-    
+
     // First, we handle keyboard shortcuts understood by the window manager.
     
     // "Super + Arrow" will resize and move windows to the specified half of the screen (left, right, top, or bottom)
@@ -790,14 +790,18 @@ fn keyboard_handle_application(key_input: KeyEvent) -> Result<(), &'static str> 
         && key_input.keycode == Keycode::T
         && key_input.action == KeyAction::Pressed
     {
+        let screen_dimensions = win_mgr.lock().get_screen_size();
+        let (width, height) = (screen_dimensions.0 , screen_dimensions.1);
+
+        let winner = WindowInner::new(Arc::new(Mutex::new(Framebuffer::new(width/2, height, None)?)), Queue::with_capacity(100), Queue::with_capacity(100))
+
         // Because this task (the window manager loop) runs in a kernel-only namespace,
         // we have to create a new application namespace in order to be able to actually spawn a shell.
-
         let new_app_namespace = mod_mgmt::create_application_namespace(None)?;
         let shell_objfile = new_app_namespace.dir().get_file_starting_with("shell-")
             .ok_or("Couldn't find shell application file to run upon Ctrl+Alt+T")?;
         let path = Path::new(shell_objfile.lock().get_absolute_path());
-        spawn::new_application_task_builder(path, Some(new_app_namespace))?
+        spawn::new_graphical_application_task_builder(path, Some(new_app_namespace), winner)?
             .name(format!("shell"))
             .spawn()?;
 

@@ -26,7 +26,9 @@ extern crate window;
 extern crate text_display;
 extern crate shapes;
 extern crate color;
+extern crate mpmc;
 
+use mpmc::Queue;
 use core::ops::DerefMut;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
@@ -35,7 +37,7 @@ use text_display::TextDisplay;
 use displayable::Displayable;
 use event_types::Event;
 use font::{CHARACTER_HEIGHT, CHARACTER_WIDTH};
-use framebuffer::{Framebuffer, Pixel};
+use framebuffer::{Framebuffer, Pixel, AlphaPixel};
 use color::{Color};
 use shapes::{Coord, Rectangle};
 use tsc::{tsc_ticks, TscTicks};
@@ -421,16 +423,10 @@ impl Terminal {
 /// Public methods of `Terminal`.
 impl Terminal {
     /// Creates a new terminal and adds it to the window manager `wm_mutex`
-    pub fn new() -> Result<Terminal, &'static str> {
-        let wm_ref = window_manager::WINDOW_MANAGER.get().ok_or("The window manager is not initialized")?;
-        let (window_width, window_height) = {
-            let wm = wm_ref.lock();
-            wm.get_screen_size()
-        };
+    pub fn new(args: (Framebuffer<AlphaPixel>, Queue<Event>, Queue<Event>)) -> Result<Terminal, &'static str> {
         let window = window::Window::new(
             Coord::new(0, 0), 
-            window_width, 
-            window_height,
+            args.0,
             FONT_BACKGROUND_COLOR,
         )?;
         
